@@ -27,8 +27,8 @@ var deltaList = function (client, cursor, cb) {
 	    reset = true;
 	    return cb();
 	},
-	change: function (path, mod, cb) {
-	    deltas.push([path, mod]);
+	deltas: function (additionalDeltas, cb) {
+	    deltas = deltas.concat(additionalDeltas);
 	    return cb();
 	},
 	done: function (err, newCursor) {

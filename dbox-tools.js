@@ -4,8 +4,8 @@ var _ = require('underscore');
 
 exports.delta = function (cli, cursor, options) {
     options = _.defaults(options || {}, {
-	reset:  function (cb) {},
-	change: function (path, mod, cb) {},
+	reset:  function (cb) { return cb() },
+	deltas: function (delta_list, cb) { return cb() },
 	done: function (err, newCursor) { 
 	    if (err) {
 		console.log('delta error ', err);
@@ -24,24 +24,15 @@ exports.delta = function (cli, cursor, options) {
 
 	    var processEntries = function () {
 		var delta_list = delta.entries;
-		
-		return (function processRemainingEntries (entries) {
-		    if (entries.length < 1) {
-			if (delta.has_more) { 
-			    return delta_loop(delta.cursor);
-			}
-			else {
-			    return options.done(null, delta.cursor);
-			}
+		return options.deltas(delta_list, function () {
+		    if (delta.has_more) { 
+			return delta_loop(delta.cursor);
 		    }
-		    var entry = _.head(entries);
-		    var path = entry[0];
-		    var meta = entry[1];
-
-		    options.change(path, meta, function () {
-			return processRemainingEntries(_.rest(entries));
-		    });
-		})(delta.entries);
+		    else {
+			return options.done(null, delta.cursor);
+		    }
+		    
+		});
 	    };
 
 	    if (delta.reset) {
