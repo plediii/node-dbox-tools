@@ -98,55 +98,65 @@ var skewedRandomInt = exports.skewedRandomInt = function (max) {
     return Math.floor(Math.sqrt(max * max * Math.random()));
 };
 
-var addDeltaCursors = exports.addDeltaCursors = function (setThen, cursors) {
+var partition = function (arr, num) {
+    var len = arr.length;
+    var cuts = _.map(_.range(num - 1), function () {
+	return Math.floor(len * Math.random());
+    });
+    var cutIntervals = _.zip([0].concat(cuts), cuts.concat([len]));
 
-    var doReset;
-
-    if (skewedRandomInt(2) > 0) {
-
-	var thisCursor = random_string();
-
-
-	cursors[thisCursor] = function (setNow, nextCursor) {
-	    return {
-		reset: false
-		, cursor: nextCursor
-		, has_more: false
-		, entries: _.shuffle(metadata.delta(setNow, setThen))
-	    };
-	};
-	
-	return thisCursor;
-    }
-    else {
-
-	var thisCursor = random_string();
-
-	cursors[thisCursor] = function (setNow, nextCursor) {
-	    return {
-		reset: true
-		, cursor: nextCursor
-		, has_more: false
-		, entries: _.shuffle(_.map(_.toArray(setNow), function (meta) {
-		    return [meta.path, meta];
-		}))
-	    };
-	}	
-
-	return thisCursor;
-    }
+    return _.map(cutIntervals, function (interval) {
+	return arr.slice(interval[0], interval[1]);
+    });
 };
 
-var deltaFromNull = exports.deltaFromNull = function (set, cursors, nextCursor) {
-    return {
-	reset: true
-	, cursor: nextCursor
-	, has_more: false
-	, entries: _.shuffle(_.map(_.toArray(set), function (meta) {
-	    return [meta.path, meta];
-	}))
+var deltaInstance = function (setThen) {
+    var doReset = (skewedRandomInt(2) > 0);
+    var numDeltaSets = 1 + skewedRandomInt(3);
+
+    return function (setNow, cursors) {
+	var entries;
+	if (setThen && !doReset) {
+	    entries = _.shuffle(metadata.delta(setNow, setThen));
+	}
+	else {
+	    entries = _.shuffle(_.map(_.toArray(setNow), function (meta) {
+		    return [meta.path, meta];
+	    }));
+	}
+	var entrySets = partition(entries, numDeltaSets);
+	var nextCursors = _.map(entrySets, function () {
+	    return random_string();
+	});
+	
+	var cbs = _.map(nextCursors, function (nextCursor, idx) {
+
+	    var reset = (idx === 0 && doReset);
+	    var has_more = (idx < (nextCursors.length - 1))
+	    var response = {
+		reset: reset
+		, has_more: has_more
+		, entries: entrySets[idx]
+		, cursor: nextCursor
+	    }
+
+	    return function (setNow, cursors) {
+		return response;
+	    };
+	});
+
+	// attach the callbacks to the previous nextCursor.  The first
+	// cb will be called now, the last nextCursor will call a new
+	// delta instance
+	_.each(_.zip(nextCursors, _.rest(cbs).concat(deltaInstance(setNow))), function (curscb) {
+	    cursors[curscb[0]] = curscb[1];
+	});
+
+	return cbs[0]();
     };
 };
+
+var nullDeltaInstance = deltaInstance(null);
 
 exports.mockclient = function (files) {
     files = metadata.fileset(files);
@@ -366,13 +376,11 @@ exports.mockclient = function (files) {
 	    }
 	    var cursor = args.cursor;
 
-	    var nextCursor = addDeltaCursors(_.clone(set), cursors);
-
 	    if (!cursor) {
-		return cb(200, deltaFromNull(set, cursors, nextCursor));
+		return cb(200, nullDeltaInstance(_.clone(set), cursors));
 	    }
 	    else if (cursors.hasOwnProperty(cursor)) {
-		return cb(200, cursors[cursor].call(this, set, nextCursor));
+		return cb(200, cursors[cursor].call(this, _.clone(set), cursors));
 	    }
 	    else {
 		return cb(4001); // again, not sure what error status to return here.
