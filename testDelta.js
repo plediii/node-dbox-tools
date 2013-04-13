@@ -183,9 +183,13 @@ var clientFileStructure = function (client, files, cb) {
 	if (files.length < 1) {
 	    return done();
 	}
-	return client.metadata(_.head(files).path, function (err, meta) {
+	var headFile = _.head(files)
+	return client.metadata(headFile.path, function (err, meta) {
 	    if (err !== 200) {
 		return cb('client does not contain file ' + _.head(files).path);
+	    }
+	    if (meta.is_dir !== headFile.is_dir) {
+		return cb('client is_dir flag does match fileset ' + headFile.path);
 	    }
 	    return clientHasFilesLoop(_.rest(files), done);
 	});
@@ -201,11 +205,14 @@ var clientFileStructure = function (client, files, cb) {
 	return client.metadata(path, function (err, meta) {
 	    assert.equal(err, 200, 'not expecting error while walking client');
 	    assert(meta.is_dir, 'expecting filesMatchClientDir to be called only on directories');
-	    assert(meta.hasOwnProperty('contents'), 'not expecting a directory to not have contents');
+	    assert(meta.hasOwnProperty('contents'), 'directory metadata returned by client does not have contents');
 	    for (var mIdx in meta.contents) {
 		var m = meta.contents[mIdx];
 		if (!files.hasOwnProperty(m.path)) {
 		    return cb('client has file not listed in file structure ' + m.path);
+		}
+		if (m.is_dir !== files[m.path].is_dir) {
+		    return cb('client directory flag for ' + path + ' does not match file set.')
 		}
 	    }
 	    return (function checkSubDirs (contents) {

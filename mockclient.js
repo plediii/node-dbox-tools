@@ -102,8 +102,7 @@ var addDeltaCursors = exports.addDeltaCursors = function (setThen, cursors) {
 
     var doReset;
 
-    // if (skewedRandomInt(2) > 0) {
-    if (false) {
+    if (skewedRandomInt(2) > 0) {
 
 	var thisCursor = random_string();
 
