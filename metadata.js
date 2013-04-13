@@ -109,13 +109,11 @@ exports.applyDelta = function (deltaList, set) {
 		}
 		set[path] = newMeta;
 		var parentPath = pathmod.dirname(path);
-		while (parentPath !== '/') {
-		    if (!set.hasOwnProperty(parentPath)) {
-			set[parentPath] = {
-			    path: parentPath
-			    , is_dir: true
-			    , rev: random_string()
-			}
+		while (!set.hasOwnProperty(parentPath)) {
+		    set[parentPath] = {
+			path: parentPath
+			, is_dir: true
+			, rev: random_string()
 		    }
 		    parentPath = pathmod.dirname(parentPath);
 		}
