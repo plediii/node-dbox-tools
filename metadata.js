@@ -51,9 +51,9 @@ var fileset_invariants = exports.fileset_invariants = function (set) {
     assert(set.hasOwnProperty('/'), 'root directory is not present');
     for (var path in set) {
 	var file = set[path];
-	assert(file.hasOwnProperty('path'), 'metadata at ' + path + 'does not have a path attribute');
-	assert(file.hasOwnProperty('rev'), 'metadata at ' + path + 'does not have a rev attribute');
-	assert(file.hasOwnProperty('is_dir'), 'metadata at ' + path + 'does not have a is_dir attribute');
+	assert(file.hasOwnProperty('path'), 'metadata at ' + path + ' does not have a path attribute');
+	assert(file.hasOwnProperty('rev'), 'metadata at ' + path + ' does not have a rev attribute');
+	assert(file.hasOwnProperty('is_dir'), 'metadata at ' + path + ' does not have a is_dir attribute');
 	assert.equal(file.path, path, 'metadata.path is not equal to fileset key');
 	var dirpath = pathmod.dirname(path);
 	assert(set.hasOwnProperty(dirpath), 'the parent directory of ' + path + ' does not exist');
