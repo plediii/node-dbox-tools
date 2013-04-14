@@ -110,7 +110,7 @@ describe("metadata rev", function () {
 
     var testRevChange = function (name, test) {
 	client = freshClient();
-	it("should incrase after " + name, function (done) {
+	it("should change after " + name, function (done) {
 	    var client = freshClient();
 	    var fileName = '/file';
 
@@ -517,7 +517,7 @@ mockFunctionTests('rm', minimalFileSet(), function (freshClient) {
 	});
     });
 
-    it('should return 404 when attempting to  move a non-existant', function (done) {
+    it('should return 404 when attempting to  move a non-existant file', function (done) {
 	var firstFileName = '/' + random_string();
 	var contents = random_string();
 	var client = freshClient();
@@ -602,6 +602,18 @@ mockFunctionTests('put', minimalFileSet(), function (freshClient) {
 	return shouldContainFiles(client, initialFiles, 'did not find initial files in fresh client', function () {
 	    return client.put(fileName, random_string(), function (err, meta) {
 		assert.notEqual(err, 200, 'expected an error putting a file below a non-directory');
+		return done();
+	    });
+	});
+    });
+
+    it('should not allow putting to the root path.', function (done) {
+	var fileName = '/';
+	var initialFiles = [];
+	var client = freshClient(initialFiles);
+	return shouldContainFiles(client, initialFiles, 'did not find initial files in fresh client', function () {
+	    return client.put(fileName, random_string(), function (err, meta) {
+		assert.notEqual(err, 200, 'expected error trying to put to the root path.');
 		return done();
 	    });
 	});
