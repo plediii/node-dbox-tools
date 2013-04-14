@@ -12,6 +12,8 @@ var random_string = exports.random_string = function () {
     return crypto.randomBytes(12).toString('hex');
 };
 
+var check_fileset_invariants = metadatamod.fileset_invariants;
+
 exports.clientFactory = function (initialFiles) {
     initialFiles = _.clone(initialFiles);
     return function (theseFiles) {
@@ -76,4 +78,104 @@ var randomPick = exports.randomPick = function (arr) {
     }
     var idx = Math.floor(arr.length * Math.random());
     return arr[idx];
+};
+
+
+var randomModify = exports.randomModify = function (client, fileset, count, cb) {
+    fileset = _.clone(fileset);
+    check_fileset_invariants(fileset);
+    var pathsToModify = _.values(fileset);
+    var mods = [];
+
+    var pickPathToModify = function (pathsToModify) {
+	if (pathsToModify.length === 0) {
+	    throw 'pathsToModify length is 0';
+	}
+	return randomPick(pathsToModify).path;
+    };
+
+    var doRandomModification = function (path, cb) {
+	return client.metadata(path, function (err, meta) {
+	    assert.equal(err, 200, 'did not expect an error getting metadata of path to modify: ' + path + ' ' + JSON.stringify(err));
+	    var modType = Math.floor(2 * Math.random());
+	    if (modType === 0) {
+		// remove
+		if (path === '/') {
+		    return cb();
+		}
+
+		var oldLen = pathsToModify.length;
+		pathsToModify = _.filter(pathsToModify, function (oldMeta) {
+		    try {
+			return oldMeta.path.indexOf(path) !== 0;
+		    }
+		    catch (e) {
+			console.log(pathsToModify);
+			console.log('exception filtering ', oldMeta, e);
+			throw e;
+		    }
+		});
+		assert(pathsToModify.length < oldLen, 'filtering for "' + path + '" apparently had no effect');
+		if (meta.is_dir) {
+		    // remove directory
+		    if (path === '/') {
+			return cb();
+		    }
+		    var rmType = Math.floor(2 * Math.random());
+		    if (rmType === 0) {
+			// directly remove
+			return client.rm(path, function (err) {
+			    assert.equal(err, 200, 'expected success putting')
+			    return cb();
+			});
+		    }
+		    else {
+			// remove by replacing with a file
+			return client.put(path, random_string(), function (err) {
+			    assert.equal(err, 200, 'expected success putting');
+			    return cb();
+			});
+		    }
+		}
+		else {
+		    // remove file
+		    return client.rm(path, function (err) {
+			assert.equal(err, 200, 'did not expect error removing path');
+			return cb();
+		    });
+		}
+	    } 
+	    else {
+		// change
+		if (meta.is_dir) {
+		    // change dir
+		    var changeType = Math.floor(2 * Math.random());
+		    // change by adding file
+		    var filePath = path + '/' + random_string();
+		    return client.put(filePath, random_string(), function (err, meta) {
+			assert.equal(err, 200, 'expected success puting file');
+			assert(meta, 'expected to receive meta from put');
+			pathsToModify.push(meta);
+			return cb();
+		    });
+		}
+		else {
+		    // change file
+		    return client.put(path, random_string(), function (err) {
+			assert.equal(err, 200, 'expected success putting file ' + path);
+			return cb();
+		    });
+		}
+	    }
+	});
+    };
+
+    return (function modifyLoop (count) {
+	if (count < 1) {
+	    return cb();
+	}
+	return doRandomModification(pickPathToModify(pathsToModify), function () {
+	    return modifyLoop(count - 1);
+	});
+    })(count);
 };
