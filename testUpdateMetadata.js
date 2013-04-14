@@ -28,64 +28,95 @@ var pickPathToModify= function (files) {
 
 describe('updateMetadata', function () {
 
-    it('should update a specific path when modified (string arg)', function (done) {
+    var afterRandomModify = function (count, cb) {
 	var initialFiles = randomFileTree();
 
 	var cli = mockclient(_.clone(initialFiles));
 
-	var path = pickPathToModify(_.toArray(initialFiles)).path;
+	return tt.randomModify(cli, initialFiles, count, function (delta) {
+	    return cb(cli, initialFiles, delta);
+	});
+    };
 
-	return cli.put(path, random_string(), function (err, meta) {
-	    assert.equal(err, 200, "did not expect an error replacing path " + path + " " + err);
-	    assert(meta.rev !== initialFiles[path].rev, "did not expect the replaced path rev to equal the original rev");
-	    return dt.updateMetadata(cli, initialFiles, path, function (err, newMetas) {
+    var assertUpdated = function (initialFiles, newMetas, deltas) {
+	_.each(deltas, function (delta) {
+	    var path = delta[0];
+	    var meta = delta[1];
+	    if (meta) {
+		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path.');
+		assert.equal(newMetas[path].rev, meta.rev, 'expected the newMetas rev to equal the rev returned in the delta.');
+		if (initialFiles.hasOwnProperty(path)) {
+		    assert.notEqual(newMetas[path].rev, initialFiles[path].rev, 'did not expect the newMetas rev to equal the original rev.');
+		}
+	    }
+	    else {
+		assert(!newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to NOT have the requested path after deletion.');
+	    }
+	});
+    };
+
+    it('should update a specific path when modified (string arg)', function (done) {
+	return afterRandomModify(1, function (cli, initialFiles, delta) {
+	    if (delta.length < 1) {
+		return done();
+	    }
+	    var path = delta[0][0];
+	    var meta = delta[0][1];
+	    var target = path;
+
+	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
-		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path.');
-		assert.notEqual(newMetas[path].rev, initialFiles[path].rev, 'did not expect the newMetas rev to equal the original rev.');
-		assert.equal(newMetas[path].rev, meta.rev, 'expected the newMetas rev to equal the rev returned by put.');
+		assertUpdated(initialFiles, newMetas, delta);
 		return done();
 	    });
 	});
     });
+
+    var getMeta = function (path, initialFiles, meta) {
+	if (initialFiles && initialFiles.hasOwnProperty(path)) {
+	    return initialFiles[path];
+	}
+	else if (meta) {
+	    return meta;
+	}
+	else {
+ 	    // don't actually have a meta available
+	    return {
+		path: path
+	    };
+	}
+    };
 
     it('should update a specific path when modified (meta arg)', function (done) {
-	var initialFiles = randomFileTree();
+	return afterRandomModify(1, function (cli, initialFiles, delta) {
+	    if (delta.length < 1) {
+		return done();
+	    }
+	    var target = getMeta(delta[0][0], initialFiles, delta[0][1]);
 
-	var cli = mockclient(_.clone(initialFiles));
-
-	var path = pickPathToModify(_.toArray(initialFiles)).path;
-
-	return cli.put(path, random_string(), function (err, meta) {
-	    assert.equal(err, 200, "did not expect an error replacing path " + path + " " + err);
-	    assert(meta.rev !== initialFiles[path].rev, "did not expect the replaced path rev to equal the original rev");
-	    return dt.updateMetadata(cli, initialFiles, initialFiles[path], function (err, newMetas) {
+	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
-		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path.');
-		assert.equal(newMetas[path].rev, meta.rev, 'expected the newMetas rev to equal the rev returned by put.');
-		assert.notEqual(newMetas[path].rev, initialFiles[path].rev, 'did not expect the newMetas rev to equal the original rev.');
+		assertUpdated(initialFiles, newMetas, delta);
 		return done();
 	    });
 	});
     });
 
-    it('should change only the specific path or parent dirs metadata provided is empty (string arg)', function (done) {
-	var initialFiles = randomFileTree();
+    it('should change only the specific path or parent dirs if initial metadata provided is empty (string arg)', function (done) {
+	return afterRandomModify(1, function (cli, initialFiles, delta) {
+	    if (delta.length < 1) {
+		return done();
+	    }
+	    var path = delta[0][0];
+	    var meta = delta[0][1];
+	    var target = path;
 
-	var cli = mockclient(_.clone(initialFiles));
-
-	var path = pickPathToModify(_.toArray(initialFiles)).path;
-
-	return cli.put(path, random_string(), function (err, meta) {
-	    assert.equal(err, 200, "did not expect an error replacing path " + path + " " + err);
-	    assert(meta.rev !== initialFiles[path].rev, "did not expect the replaced path rev to equal the original rev");
-	    return dt.updateMetadata(cli, {}, path, function (err, newMetas) {
+	    return dt.updateMetadata(cli, {}, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
-		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path.');
-		assert.notEqual(newMetas[path].rev, initialFiles[path].rev, 'did not expect the newMetas rev to equal the original rev.');
-		assert.equal(newMetas[path].rev, meta.rev, 'expected the newMetas rev to equal the rev returned by put.');
+		assertUpdated({}, newMetas, delta);
 		_.each(newMetas, function (meta) {
 		    assert.equal(path.indexOf(meta.path), 0, "did not expect to find a meta not a parent of the target path " + JSON.stringify(meta));
 		});
@@ -93,5 +124,4 @@ describe('updateMetadata', function () {
 	    });
 	});
     });
-
 });
