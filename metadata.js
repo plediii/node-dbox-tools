@@ -79,10 +79,13 @@ exports.delta = function (setNow, setThen) {
     }
 
     return deltas;
-
 };
 
 var rmDir = exports.rmDir = function (set, path) {
+    fileset_invariants(set);
+    if (path === '/') {
+	throw 'tried to remove root directory';
+    }
     for (var oldPath in set) {
 	if (set.hasOwnProperty(oldPath)) {
 	    if (set[oldPath].path.indexOf(path) === 0) {
@@ -90,47 +93,72 @@ var rmDir = exports.rmDir = function (set, path) {
 	    }
 	}
     }
-}
+    fileset_invariants(set);
+};
 
-exports.applyDelta = function (deltaList, set) {
+var rm = exports.rm = function (set, path) {
+    fileset_invariants(set);
+    if (!set.hasOwnProperty(path)) {
+	return;
+    }
+    var meta = set[path];
+    if (meta.is_dir) {
+	return rmDir(set, path);
+    }
+    else {
+	delete set[path];
+    }
+    fileset_invariants(set);
+};
+
+var changePath = exports.changePath = function (set, path, meta) {
+    fileset_invariants(set);
+    path = normalizePath(path);
+    var oldMeta = null;
+    if (set.hasOwnProperty(path)) {
+	oldMeta = set[path];
+    }
+
+    if (meta) {
+	// update or add a new 
+	if (oldMeta && oldMeta.is_dir && !meta.is_dir) {
+	    // if the old meta is a dir, and we are replacing it with a file, remove subpaths
+	    rmDir(set, path);
+	}
+	fileset_invariants(set);
+	set[path] = meta;
+	var parentPath = pathmod.dirname(path);
+	while (!set.hasOwnProperty(parentPath)) {
+	    set[parentPath] = {
+		path: parentPath
+		, is_dir: true
+		, rev: random_string()
+	    }
+	    parentPath = pathmod.dirname(parentPath);
+	}
+	if (!set[parentPath].is_dir) {
+	    throw 'changed meta of path ' + path + '; but ' + parentPath + ' is not a directory';
+	}
+    }
+    fileset_invariants(set);
+    return set;
+};
+
+var applyDelta = exports.applyDelta = function (deltaList, set) {
     fileset_invariants(set);
     for (var idx in deltaList) {
 	var delta = deltaList[idx];
 	var path = delta[0];
 	var newMeta = delta[1];
-	
-	var oldMeta = set[path];
-	if (!oldMeta || !newMeta || oldMeta.rev !== newMeta.rev) {
-	    if (newMeta) {
-		// update or add a new 
-		if (oldMeta && oldMeta.is_dir && !newMeta.is_dir) {
-		    // if the old meta is a dir, and we are replacing it with a file, remove subpaths
-		    rmDir(set, path);
-		}
-		set[path] = newMeta;
-		var parentPath = pathmod.dirname(path);
-		while (!set.hasOwnProperty(parentPath)) {
-		    set[parentPath] = {
-			path: parentPath
-			, is_dir: true
-			, rev: random_string()
-		    }
-		    parentPath = pathmod.dirname(parentPath);
-		}
-	    }
-	    else {
-		// remove
-		if (oldMeta) {
-		    if (oldMeta.is_dir) {
-			rmDir(set, path);
-		    }
-		    else {
-			delete set[path];
-		    }
-		}
-	    }
+
+	if (newMeta) {
+	    changePath(set, path, newMeta);
+	}
+	else {
+	    rm(set, path);
 	}
 	fileset_invariants(set);
     }
     return set;
 };
+

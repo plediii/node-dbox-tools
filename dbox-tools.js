@@ -1,6 +1,40 @@
 
 
 var _ = require('underscore');
+var metadatamod = require('./metadata')
+
+var updateMetadata = exports.updateMetadata = function (cli, metadata, targets, cb) {
+    metadata = metadatamod.fileset(metadata);
+
+    var path;
+    if (targets.hasOwnProperty('path')) {
+	path = targets.path;
+    }
+    else if (typeof targets === 'string') {
+	path = targets;
+    }
+    else {
+	throw 'unexpected targets type: ' + typeof targets;
+    }
+    var oldMeta = null;
+    var options = {};
+    if (metadata.hasOwnProperty(path) && metadata[path].hasOwnProperty('hash')) {
+	options.hash = metadata[path].hash;
+    }
+    return cli.metadata(path, options, function (err, meta) {
+	if (err === 200) {
+	    metadatamod.changePath(metadata, path, meta)
+	}
+	else if (err === 404) {
+	    metadatamod.rm(metadata, path);
+	}
+	else if (err === 304) {}
+	else {
+	    return cb('unexpected error getting client metadata for path ' + path + ' : ' + err);
+	}
+	return cb(null, metadata);
+    });
+};
 
 exports.delta = function (cli, cursor, options) {
     options = _.defaults(options || {}, {
