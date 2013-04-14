@@ -275,6 +275,10 @@ exports.mockclient = function (files) {
 	rm: function (path, cb) {
 	    check_invariants();
 	    path = normalizePath(path);
+	    if (path === '/') {
+		return cb(5000);
+	    }
+
 	    if (set.hasOwnProperty(path)) {
 		rmPath(path);
 		check_invariants();
@@ -321,6 +325,10 @@ exports.mockclient = function (files) {
 	put: function (path, data, cb) {
 	    check_invariants();
 	    path = normalizePath(path);
+	    if (path === '/') {
+		return cb(5000);
+	    }
+	    
 	    var dirName = pathmod.dirname(path);
 	    if (!set[dirName].is_dir) {
 		return cb(4000);
@@ -337,6 +345,11 @@ exports.mockclient = function (files) {
 	cp: function (path, otherPath, cb) {
 	    check_invariants();
 	    otherPath = normalizePath(otherPath);
+	    if (otherPath === '/') {
+		return cb(5000);
+	    }
+
+
 	    if (path.hasOwnProperty('copy_ref')) {
 		// they're trying to copy from a ref.  let's just pretend we did something.
 		return that.put(otherPath, JSON.stringify(path), cb);
