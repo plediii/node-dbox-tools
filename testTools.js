@@ -126,14 +126,14 @@ var randomModify = exports.randomModify = function (client, fileset, count, cb) 
 			// directly remove
 			return client.rm(path, function (err) {
 			    assert.equal(err, 200, 'expected success putting')
-			    return cb();
+			    return cb([path, null]);
 			});
 		    }
 		    else {
 			// remove by replacing with a file
-			return client.put(path, random_string(), function (err) {
+			return client.put(path, random_string(), function (err, meta) {
 			    assert.equal(err, 200, 'expected success putting');
-			    return cb();
+			    return cb([path, meta]);
 			});
 		    }
 		}
@@ -141,7 +141,7 @@ var randomModify = exports.randomModify = function (client, fileset, count, cb) 
 		    // remove file
 		    return client.rm(path, function (err) {
 			assert.equal(err, 200, 'did not expect error removing path');
-			return cb();
+			return cb([path, null]);
 		    });
 		}
 	    } 
@@ -156,25 +156,29 @@ var randomModify = exports.randomModify = function (client, fileset, count, cb) 
 			assert.equal(err, 200, 'expected success puting file');
 			assert(meta, 'expected to receive meta from put');
 			pathsToModify.push(meta);
-			return cb();
+			return cb([filePath, meta]);
 		    });
 		}
 		else {
 		    // change file
-		    return client.put(path, random_string(), function (err) {
+		    return client.put(path, random_string(), function (err, meta) {
 			assert.equal(err, 200, 'expected success putting file ' + path);
-			return cb();
+			return cb([path, meta]);
 		    });
 		}
 	    }
 	});
     };
 
+    var modifications = [];
     return (function modifyLoop (count) {
 	if (count < 1) {
-	    return cb();
+	    return cb(modifications);
 	}
-	return doRandomModification(pickPathToModify(pathsToModify), function () {
+	return doRandomModification(pickPathToModify(pathsToModify), function (mod) {
+	    if (mod) {
+		modifications.push(mod);
+	    }
 	    return modifyLoop(count - 1);
 	});
     })(count);
