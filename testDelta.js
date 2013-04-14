@@ -40,44 +40,6 @@ var deltaList = function (client, cursor, cb) {
 
 var skewedRandomInt = tt.skewedRandomInt;
 
-var randomFile = function (parentPath) {
-    return {path: pathmod.join(parentPath, random_string()), data: random_string(), is_dir: false};
-};
-
-var randomDirectoryTree = function (path, options) {
-    options = _.clone(options);
-
-    var components = [[{path: path, is_dir: true}]];
-    var fileCount = skewedRandomInt(options.maxFilesInDir + 1);
-    for (var count = 0; count < fileCount; count++)
-    {
-	components.push([randomFile(path)]);
-    }
-
-
-    if (options.maxLevels > 0) {
-	options.maxLevels = skewedRandomInt(options.maxLevels);
-	var branchCount = skewedRandomInt(options.maxBranch + 1);
-	for (var count = 0; count < branchCount; count++)
-	{
-	    var dirname = random_string();
-	    components.push(randomDirectoryTree(pathmod.join(path, dirname), options));
-	}
-    }
-
-    return _.flatten(components);
-};
-
-var randomFileTree = function (options) {
-    options = _.defaults(options || {}, {
-	maxFilesInDir: 10
-	, maxLevels: 3
-	, maxBranch: 4
-    });
-
-    return fileset(randomDirectoryTree('/', options));
-};
-
 var randomModify = function (client, fileset, count, cb) {
     fileset = _.clone(fileset);
     check_fileset_invariants(fileset);
@@ -88,8 +50,7 @@ var randomModify = function (client, fileset, count, cb) {
 	if (pathsToModify.length === 0) {
 	    throw 'pathsToModify length is 0';
 	}
-	var idx = Math.floor(pathsToModify.length * Math.random());
-	return pathsToModify[idx].path;
+	return tt.randomPick(pathsToModify).path;
     };
 
     var doRandomModification = function (path, cb) {
@@ -177,6 +138,10 @@ var randomModify = function (client, fileset, count, cb) {
 	});
     })(count);
 };
+
+var randomFile = tt.randomFile;
+var randomDirectoryTree = tt.randomDirectoryTree;
+var randomFileTree = tt.randomFileTree;
 
 var clientFileStructure = function (client, files, cb) {
     var clientHasFilesLoop = function (files, done) {
