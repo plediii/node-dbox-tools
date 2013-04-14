@@ -124,4 +124,63 @@ describe('updateMetadata', function () {
 	    });
 	});
     });
+
+    it('should update a specific paths when modified (string array arg)', function (done) {
+	return afterRandomModify(10, function (cli, initialFiles, deltas) {
+	    if (deltas.length < 1) {
+		return done();
+	    }
+	    var targets = _.map(deltas, function (delta) {
+		return delta[0];
+	    });
+
+	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
+		assert(!err, 'did not expect error from updateMetadata');
+		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assertUpdated(initialFiles, newMetas, deltas);
+		return done();
+	    });
+	});
+    });
+
+    it('should update a specific paths when modified (meta array arg)', function (done) {
+	return afterRandomModify(10, function (cli, initialFiles, deltas) {
+	    if (deltas.length < 1) {
+		return done();
+	    }
+	    var targets = _.map(deltas, function (delta) {
+		return getMeta(delta[0][0], initialFiles, delta[0][1])
+	    });
+
+	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
+		assert(!err, 'did not expect error from updateMetadata');
+		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assertUpdated(initialFiles, newMetas, deltas);
+		return done();
+	    });
+	});
+    });
+
+    it('should change only the specific path or parent dirs if initial metadata provided is empty (string array arg)', function (done) {
+	return afterRandomModify(10, function (cli, initialFiles, deltas) {
+	    if (deltas.length < 1) {
+		return done();
+	    }
+	    var targets = _.map(deltas, function (delta) {
+		return delta[0];
+	    });
+
+	    return dt.updateMetadata(cli, {}, targets, function (err, newMetas) {
+		assert(!err, 'did not expect error from updateMetadata');
+		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assertUpdated({}, newMetas, deltas);
+
+		_.each(newMetas, function (meta) {
+		    assert(_.some(targets, function (path) { return path.indexOf(meta.path)==0; })
+			   , "found a meta not a parent of any target path " + JSON.stringify(meta));
+		});
+		return done();
+	    });
+	});
+    });
 });
