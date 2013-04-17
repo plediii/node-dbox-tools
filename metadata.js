@@ -86,12 +86,13 @@ exports.delta = function (setNow, setThen) {
 
 var rmDir = exports.rmDir = function (set, path) {
     fileset_invariants(set);
+    path = normalizePath(path);
     if (path === '/') {
 	throw 'tried to remove root directory';
     }
     for (var oldPath in set) {
 	if (set.hasOwnProperty(oldPath)) {
-	    if (set[oldPath].path.indexOf(path) === 0) {
+	    if (normalizePath(set[oldPath].path).indexOf(path) === 0) {
 		delete set[oldPath];
 	    }
 	}
@@ -129,6 +130,14 @@ var changePath = exports.changePath = function (set, path, meta) {
 	    rmDir(set, path);
 	}
 	fileset_invariants(set);
+	if (meta.is_dir && meta.contents) {
+	    _.forEach(meta.contents, function (subMeta) {
+		changePath(set, subMeta.path, subMeta);
+	    });
+	    delete meta['contents'];
+	}
+	fileset_invariants(set);
+
 	set[path] = meta;
 	var parentPath = pathmod.dirname(path);
 	while (!set.hasOwnProperty(parentPath)) {
