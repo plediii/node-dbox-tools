@@ -38,19 +38,54 @@ describe('updateMetadata', function () {
 	});
     };
 
+    var getChange = function (path, deltas) {
+	var deltaPaths = _.map(deltas, function (delta) { return delta[0]; } );
+	var idx = _.lastIndexOf(deltaPaths, path);
+	if (idx < 0) {
+	    return false;
+	}
+	var change = deltas[idx][1];
+	// we consider this to be the actual change if no parent path
+	// was deleted afterwards
+	if (change 
+	    && _.chain(deltaPaths.slice(idx))
+	    .filter(function (parentPath) { return parentPath !== path &&  path.indexOf(parentPath)===0; })
+	    .all(function (parentPath) { 
+		var parentChange = getChange(parentPath, deltas.slice(idx));
+		return parentChange !== null && parentChange.is_dir;
+	    })
+	    .value())
+	{
+	    return change;
+	}
+	else {
+	    return null;
+	}
+    };
+
     var assertUpdated = function (initialFiles, newMetas, deltas) {
-	_.each(deltas, function (delta) {
-	    var path = delta[0];
-	    var meta = delta[1];
+	_.each(deltas, function (theDelta) {
+	    var path = theDelta[0];
+	    assert(path, 'got falsy path ' + JSON.stringify(path));
+	    var meta = getChange(path, deltas);
+	    assert(meta !== false, 'no change for path ' + path + ' in ' + JSON.stringify(deltas));
 	    if (meta) {
-		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path.');
+		if (!newMetas.hasOwnProperty(path)) {
+		    console.log(deltas);
+		}
+		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path: ' + path);
 		assert.equal(newMetas[path].rev, meta.rev, 'expected the newMetas rev to equal the rev returned in the delta.');
 		if (initialFiles.hasOwnProperty(path)) {
 		    assert.notEqual(newMetas[path].rev, initialFiles[path].rev, 'did not expect the newMetas rev to equal the original rev.');
 		}
 	    }
 	    else {
-		assert(!newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to NOT have the requested path after deletion.');
+		if (newMetas.hasOwnProperty(path)) {
+		    console.log('not truthy: ', path, meta, newMetas[path]);
+		    console.log(deltas);
+
+		}
+		assert(!newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to NOT have the requested path after deletion: '+ path);
 	    }
 	});
     };
@@ -73,27 +108,16 @@ describe('updateMetadata', function () {
 	});
     });
 
-    var getMeta = function (path, initialFiles, meta) {
-	if (initialFiles && initialFiles.hasOwnProperty(path)) {
-	    return initialFiles[path];
-	}
-	else if (meta) {
-	    return meta;
-	}
-	else {
- 	    // don't actually have a meta available
-	    return {
-		path: path
-	    };
-	}
-    };
 
     it('should update a specific path when modified (meta arg)', function (done) {
 	return afterRandomModify(1, function (cli, initialFiles, delta) {
 	    if (delta.length < 1) {
 		return done();
 	    }
-	    var target = getMeta(delta[0][0], initialFiles, delta[0][1]);
+	    var target = {
+		path: delta[0][0]
+	    };
+	    assert(target, 'falsy target ' + JSON.stringify(target));
 
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
@@ -149,7 +173,9 @@ describe('updateMetadata', function () {
 		return done();
 	    }
 	    var targets = _.map(deltas, function (delta) {
-		return getMeta(delta[0][0], initialFiles, delta[0][1])
+		return {
+		    path: delta[0]
+		}
 	    });
 
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
