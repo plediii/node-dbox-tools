@@ -58,6 +58,7 @@ var fileset_invariants = exports.fileset_invariants = function (set) {
 	    assert(!file.hasOwnProperty('contents'), 'directory contents should not be included in the directory metadata.');
 	}
 	assert.equal(file.path, path, 'metadata.path is not equal to fileset key');
+	assert(path.indexOf('//') < 0, 'double slash in path: ' + path);
 	var dirpath = pathmod.dirname(path);
 	assert(set.hasOwnProperty(dirpath), 'the parent directory of ' + path + ' does not exist');
 	var dir = set[dirpath];
