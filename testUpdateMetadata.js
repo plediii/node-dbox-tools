@@ -101,7 +101,7 @@ describe('updateMetadata', function () {
 
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
-		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
 		assertUpdated(initialFiles, newMetas, delta);
 		return done();
 	    });
@@ -121,7 +121,7 @@ describe('updateMetadata', function () {
 
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
-		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
 		assertUpdated(initialFiles, newMetas, delta);
 		return done();
 	    });
@@ -139,7 +139,7 @@ describe('updateMetadata', function () {
 
 	    return dt.updateMetadata(cli, {}, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
-		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
 		assertUpdated({}, newMetas, delta);
 		_.each(newMetas, function (meta) {
 		    assert.equal(path.indexOf(meta.path), 0, "did not expect to find a meta not a parent of the target path " + JSON.stringify(meta));
@@ -149,7 +149,7 @@ describe('updateMetadata', function () {
 	});
     });
 
-    it('should update a specific paths when modified (string array arg)', function (done) {
+    it('should update specific paths when modified (string array arg)', function (done) {
 	return afterRandomModify(10, function (cli, initialFiles, deltas) {
 	    if (deltas.length < 1) {
 		return done();
@@ -160,14 +160,14 @@ describe('updateMetadata', function () {
 
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
-		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
 		assertUpdated(initialFiles, newMetas, deltas);
 		return done();
 	    });
 	});
     });
 
-    it('should update a specific paths when modified (meta array arg)', function (done) {
+    it('should update specific paths when modified (meta array arg)', function (done) {
 	return afterRandomModify(10, function (cli, initialFiles, deltas) {
 	    if (deltas.length < 1) {
 		return done();
@@ -180,7 +180,7 @@ describe('updateMetadata', function () {
 
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
-		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
 		assertUpdated(initialFiles, newMetas, deltas);
 		return done();
 	    });
@@ -198,7 +198,7 @@ describe('updateMetadata', function () {
 
 	    return dt.updateMetadata(cli, {}, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
-		assert(newMetas, 'function expected to receive new fileset from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
 		assertUpdated({}, newMetas, deltas);
 
 		_.each(newMetas, function (meta) {
