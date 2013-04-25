@@ -167,9 +167,8 @@ describe('updateMetadata', function () {
 	    if (deltas.length < 1) {
 		return done();
 	    }
-	    var oneDelta = randomPick(deltas);
 	    var targets = _.map(deltas, function (delta) {
-		return oneDelta[0];
+		return delta[0];
 	    });
 
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
