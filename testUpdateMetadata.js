@@ -102,7 +102,7 @@ describe('updateMetadata', function () {
 	    if (delta.length < 1) {
 		return done();
 	    }
-	    var oneDelta = _.last(delta);
+	    var oneDelta = randomPick(delta);
 	    var path = oneDelta[0][0];
 	    var meta = oneDelta[0][1];
 	    var target = path;
@@ -122,7 +122,7 @@ describe('updateMetadata', function () {
 	    if (delta.length < 1) {
 		return done();
 	    }
-	    var oneDelta = _.last(delta);
+	    var oneDelta = randomPick(delta);
 	    var target = {
 		path: oneDelta[0][0]
 	    };
@@ -142,7 +142,7 @@ describe('updateMetadata', function () {
 	    if (delta.length < 1) {
 		return done();
 	    }
-	    var oneDelta = _.last(delta);
+	    var oneDelta = randomPick(delta);
 	    var path = oneDelta[0][0];
 	    var meta = oneDelta[0][1];
 	    var target = path;
@@ -167,7 +167,7 @@ describe('updateMetadata', function () {
 	    if (deltas.length < 1) {
 		return done();
 	    }
-	    var oneDelta = _.last(deltas);
+	    var oneDelta = randomPick(deltas);
 	    var targets = _.map(deltas, function (delta) {
 		return oneDelta[0];
 	    });
