@@ -63,7 +63,7 @@ describe('updateMetadata', function () {
 	}
     };
 
-    var assertUpdated = function (initialFiles, newMetas, deltas) {
+    var assertUpdated = function (newMetas, deltas) {
 	_.each(deltas, function (theDelta) {
 	    var path = theDelta[0];
 	    assert(path, 'got falsy path ' + JSON.stringify(path));
@@ -75,9 +75,6 @@ describe('updateMetadata', function () {
 		}
 		assert(newMetas.hasOwnProperty(path), 'expected the metadatas returned by updateMetadata to have the requested path: ' + path);
 		assert.equal(newMetas[path].rev, meta.rev, 'expected the newMetas rev to equal the rev returned in the delta.');
-		if (initialFiles.hasOwnProperty(path)) {
-		    assert.notEqual(newMetas[path].rev, initialFiles[path].rev, 'did not expect the newMetas rev to equal the original rev.');
-		}
 	    }
 	    else {
 		if (newMetas.hasOwnProperty(path)) {
@@ -102,7 +99,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(initialFiles, newMetas, delta);
+		assertUpdated(newMetas, delta);
 		return done();
 	    });
 	});
@@ -122,7 +119,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(initialFiles, newMetas, delta);
+		assertUpdated(newMetas, delta);
 		return done();
 	    });
 	});
@@ -140,7 +137,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, {}, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated({}, newMetas, delta);
+		assertUpdated(newMetas, delta);
 		_.each(newMetas, function (meta) {
 		    assert.equal(path.indexOf(meta.path), 0, "did not expect to find a meta not a parent of the target path " + JSON.stringify(meta));
 		});
@@ -161,7 +158,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(initialFiles, newMetas, deltas);
+		assertUpdated(newMetas, deltas);
 		return done();
 	    });
 	});
@@ -181,7 +178,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(initialFiles, newMetas, deltas);
+		assertUpdated(newMetas, deltas);
 		return done();
 	    });
 	});
@@ -199,7 +196,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, {}, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated({}, newMetas, deltas);
+		assertUpdated(newMetas, deltas);
 
 		_.each(newMetas, function (meta) {
 		    assert(_.some(targets, function (path) { return path.indexOf(meta.path)==0; })
