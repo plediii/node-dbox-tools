@@ -52,7 +52,7 @@ var updateMetadata = exports.updateMetadata = function (cli, metadata, targets, 
 		    updateLoop(_.rest(targets));
 		}
 	    });
-	})(targets);
+	})(_.toArray(targets));
     }
 };
 
