@@ -125,7 +125,7 @@ var randomModify = exports.randomModify = function (client, fileset, count, cb) 
 		    if (rmType === 0) {
 			// directly remove
 			return client.rm(path, function (err) {
-			    assert.equal(err, 200, 'expected success putting')
+			    assert.equal(err, 200, 'expected success rming')
 			    return cb([path, null]);
 			});
 		    }
@@ -151,7 +151,7 @@ var randomModify = exports.randomModify = function (client, fileset, count, cb) 
 		    // change dir
 		    var changeType = Math.floor(2 * Math.random());
 		    // change by adding file
-		    var filePath = path + '/' + random_string();
+		    var filePath = pathmod.join(path, random_string());
 		    return client.put(filePath, random_string(), function (err, meta) {
 			assert.equal(err, 200, 'expected success puting file');
 			assert(meta, 'expected to receive meta from put');
