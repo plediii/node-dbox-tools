@@ -5,6 +5,7 @@ var mockclient = require('./mockclient').mockclient;
 var dt = require('./dbox-tools');
 var _ = require('underscore');
 var assert = require('assert');
+var pathmod = require('path');
 
 
 var random_string = tt.random_string;
@@ -63,12 +64,21 @@ describe('updateMetadata', function () {
 	}
     };
 
-    var assertUpdated = function (newMetas, deltas) {
-	_.each(deltas, function (theDelta) {
-	    var path = theDelta[0];
-	    assert(path, 'got falsy path ' + JSON.stringify(path));
+    var assertUpdated = function (newMetas, deltas, targets) {
+	_.each(targets, function (path) {
+	    if (typeof path !== 'string') {
+		if (!path.hasOwnProperty('path')) {
+		    throw 'unable to recognize type of target: ' + JSON.stringify(targets);
+		}
+		else {
+		    path = path.path;
+		}
+	    }
 	    var meta = getChange(path, deltas);
-	    assert(meta !== false, 'no change for path ' + path + ' in ' + JSON.stringify(deltas));
+	    if (meta === false) {
+		// no change to target reported in deltas
+		return;
+	    }
 	    if (meta) {
 		if (!newMetas.hasOwnProperty(path)) {
 		    console.log(deltas);
@@ -88,18 +98,19 @@ describe('updateMetadata', function () {
     };
 
     it('should update a specific path when modified (string arg)', function (done) {
-	return afterRandomModify(1, function (cli, initialFiles, delta) {
+	return afterRandomModify(10, function (cli, initialFiles, delta) {
 	    if (delta.length < 1) {
 		return done();
 	    }
-	    var path = delta[0][0];
-	    var meta = delta[0][1];
+	    var oneDelta = _.last(delta);
+	    var path = oneDelta[0][0];
+	    var meta = oneDelta[0][1];
 	    var target = path;
 
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(newMetas, delta);
+		assertUpdated(newMetas, delta, [target]);
 		return done();
 	    });
 	});
@@ -107,39 +118,44 @@ describe('updateMetadata', function () {
 
 
     it('should update a specific path when modified (meta arg)', function (done) {
-	return afterRandomModify(1, function (cli, initialFiles, delta) {
+	return afterRandomModify(10, function (cli, initialFiles, delta) {
 	    if (delta.length < 1) {
 		return done();
 	    }
+	    var oneDelta = _.last(delta);
 	    var target = {
-		path: delta[0][0]
+		path: oneDelta[0][0]
 	    };
 	    assert(target, 'falsy target ' + JSON.stringify(target));
 
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(newMetas, delta);
+		assertUpdated(newMetas, delta, [target]);
 		return done();
 	    });
 	});
     });
 
     it('should change only the specific path or parent dirs if initial metadata provided is empty (string arg)', function (done) {
-	return afterRandomModify(1, function (cli, initialFiles, delta) {
+	return afterRandomModify(10, function (cli, initialFiles, delta) {
 	    if (delta.length < 1) {
 		return done();
 	    }
-	    var path = delta[0][0];
-	    var meta = delta[0][1];
+	    var oneDelta = _.last(delta);
+	    var path = oneDelta[0][0];
+	    var meta = oneDelta[0][1];
 	    var target = path;
 
 	    return dt.updateMetadata(cli, {}, target, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(newMetas, delta);
-		_.each(newMetas, function (meta) {
-		    assert.equal(path.indexOf(meta.path), 0, "did not expect to find a meta not a parent of the target path " + JSON.stringify(meta));
+		assertUpdated(newMetas, delta, [target]);
+		_.each(newMetas, function (newMeta) {
+		    // all the newMetas should be parent paths, or immediate children of the target
+		    var isParentPath = (path.indexOf(newMeta.path) === 0);
+		    var isChild = (pathmod.dirname(newMeta.path) === path)
+		    assert(isParentPath || isChild, "did not expect to find a meta not a parent or direct child of the target path " + target + ": " + JSON.stringify(newMeta));
 		});
 		return done();
 	    });
@@ -151,14 +167,15 @@ describe('updateMetadata', function () {
 	    if (deltas.length < 1) {
 		return done();
 	    }
+	    var oneDelta = _.last(deltas);
 	    var targets = _.map(deltas, function (delta) {
-		return delta[0];
+		return oneDelta[0];
 	    });
 
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(newMetas, deltas);
+		assertUpdated(newMetas, deltas, targets);
 		return done();
 	    });
 	});
@@ -178,7 +195,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(newMetas, deltas);
+		assertUpdated(newMetas, deltas, targets);
 		return done();
 	    });
 	});
@@ -196,7 +213,7 @@ describe('updateMetadata', function () {
 	    return dt.updateMetadata(cli, {}, targets, function (err, newMetas) {
 		assert(!err, 'did not expect error from updateMetadata');
 		assert(newMetas, 'expected to receive new fileset from updateMetadata');
-		assertUpdated(newMetas, deltas);
+		assertUpdated(newMetas, deltas, targets);
 
 		_.each(newMetas, function (meta) {
 		    assert(_.some(targets, function (path) { return path.indexOf(meta.path)==0; })
