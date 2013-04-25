@@ -222,4 +222,28 @@ describe('updateMetadata', function () {
 	    });
 	});
     });
+
+    it('should update specific paths when modified (meta set arg)', function (done) {
+	return afterRandomModify(10, function (cli, initialFiles, deltas) {
+	    if (deltas.length < 1) {
+		return done();
+	    }
+	    var targets = {};
+	    _.chain(deltas)
+		.filter(function () { return Math.random() > 0.5; })
+		.each(function (delta) {
+		    var path = delta[0];
+		    targets[path] = {
+			path: path
+		    }
+		});
+
+	    return dt.updateMetadata(cli, initialFiles, targets, function (err, newMetas) {
+		assert(!err, 'did not expect error from updateMetadata');
+		assert(newMetas, 'expected to receive new fileset from updateMetadata');
+		assertUpdated(newMetas, deltas, targets);
+		return done();
+	    });
+	});
+    });
 });
