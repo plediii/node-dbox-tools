@@ -48,13 +48,16 @@ var mkdir = function (path) {
 };
 
 var mkfile = function (path, contents) {
-    if (typeof contents !== 'string') {
-	if (contents) {
-	    contents = JSON.stringify(contents);
-	}
-	else {
-	    contents = null;
-	}
+    
+    if (contents && !(typeof contents === 'string'
+		      || contents instanceof Buffer)) {
+	contents = JSON.stringify(contents);
+    }
+    if (contents) {
+	contents = new Buffer(contents);
+    }
+    else {
+	contents = new Buffer('');
     }
     
     return {
@@ -319,7 +322,7 @@ exports.mockclient = function (files) {
 		return cb(404);
 	    }
 	    check_invariants();
-	    return cb(200, set[path].data);
+	    return cb(200, new Buffer(set[path].data));
 	},
 
 	put: function (path, data, cb) {
