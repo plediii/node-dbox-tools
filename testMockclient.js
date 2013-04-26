@@ -781,6 +781,43 @@ mockFunctionTests('get', minimalFileSet(), function (freshClient) {
 	    });
 	});
     });
+
+    it('should not allow editing file contents', function (done) {
+	var fileName = random_string();
+	var contents = random_string();
+	var client = freshClient([{
+	    path: fileName,
+	    data: contents
+	}]);
+
+	return client.get(fileName, function (err, data) {
+	    assert.equal(err, 200, 'unexpected error getting file.');
+	    assert.equal(data, contents, 'get returned unexpected contents');
+	    var originalContents = new Buffer(data);
+	    data[0] = data[0] + 1; // try to change the data
+	    var dataBuffer = new Buffer(data);
+	    if (dataBuffer.toString() === originalContents.toString()) {
+		assert.equal(dataBuffer.toString(), originalContents.toString(), 'our copy of the data should not have changed.');
+		return done();
+	    }
+	    else {
+		assert.notEqual(originalContents.toString(), dataBuffer.toString(), 'if we cant change the data we have, obviously we cant edit the file contents.');
+		return client.get(fileName, function (err, redata) {
+		    var reBuffer = new Buffer(redata);
+		    assert.equal(originalContents.toString(), reBuffer.toString());
+		    return done();
+		});
+	    }
+	});
+
+	return shouldContainFiles(client, fileName, 'did not find expected file in client private files', function () {
+	    return client.get(fileName, function (err, data) {
+		assert.equal(err, 200);
+		assert.equal(data, contents);
+		done();
+	    });
+	})
+    });
 });
 
 mockFunctionTests('cp', minimalFileSet(), function (freshClient) {
