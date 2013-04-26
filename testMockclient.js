@@ -701,31 +701,6 @@ mockFunctionTests('mv', minimalFileSet(), function (freshClient) {
 });
 
 mockFunctionTests('get', minimalFileSet(), function (freshClient) {
-    it('should return null for empty file contents', function (done) {
-	var fileName = '/' + random_string();
-	var contents = random_string();
-	var client = freshClient([{
-	    path: fileName,
-	}]);
-	return client.get(fileName, function (err, data) {
-	    assert.equal(err, 200, 'expected to get success status when requesting get on existing file');
-	    assert.equal(data, null, 'expected to get null contents when file does not have data');
-	    done();
-	});
-    });
-
-    it('should return null for empty file contents (no slash)', function (done) {
-	var fileName = random_string();
-	var contents = random_string();
-	var client = freshClient([{
-	    path: fileName,
-	}]);
-	return client.get(fileName, function (err, data) {
-	    assert.equal(err, 200, 'expected to get success status when requesting get on existing file');
-	    assert.equal(data, null, 'expected to get null contents when file does not have data');
-	    done();
-	});
-    });
 
     it('should return 404 status for non-existant file.', function (done) {
 	var fileName = '/' + random_string();
