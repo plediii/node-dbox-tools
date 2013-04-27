@@ -19,10 +19,17 @@ describe('filecontroller', function () {
 
     var checkUpdated = function (client, rootPath, targets, cb) {
 	var notUpdatedArr = [];
-	var notUpdated = function (path, message) {
+	var notUpdated = function (localInfo, clientInfo, message) {
 	    if (!message) { message = ''; }
-	    notUpdatedArr.push(path + ';' + pathmod.join(path, rootPath) + ': ' + message);
-	    return path;
+	    notUpdatedArr.push(JSON.stringify({
+		// path: localInfo.path
+		 type: localInfo.type
+	    }) + '(local)'
+			       +  JSON.stringify({
+				   // path: clientInfo.path
+				    type: clientInfo.type
+			       })
+			      + '(client): ' + message);
 	};
 
 	var nothingType = 'nothing';
@@ -104,7 +111,7 @@ describe('filecontroller', function () {
 
 	return (function checkLoop (targets) {
 	    if (targets.length < 1) {
-		return cb(notUpdated);
+		return cb(notUpdatedArr);
 	    }
 	    var path = _.head(targets);
 	    var localPath = pathmod.join(rootPath, path);
@@ -116,19 +123,19 @@ describe('filecontroller', function () {
 	    return getLocalFileInfo(path, function (localInfo) {
 		return getClientFileInfo(path, function (clientInfo, metadata) {
 		    if (localInfo.type !== clientInfo.type) {
-			notUpdatedArr.push('different types ' + JSON.stringify(localInfo) + ' '+ JSON.stringify(clientInfo));
+			notUpdated(localInfo, clientInfo, 'different types.');
 			return resume();
 		    }
 		    else if (localInfo.type === fileType) {
 			if ('' + localInfo.contents !== '' + clientInfo.contents) {
-			    notUpdatedArr.push('different file contents ' + JSON.stringify(localInfo) + ' '+ JSON.stringify(clientInfo));
+			    notUpdated(localInfo, clientInfo, 'different file contents');
 			}
 			return resume();
 		    }
 		    else if (localInfo.type === dirType) {
 			var missingFiles = _.difference(clientInfo.list, localInfo.list);
 			if (missingFiles.length > 0) {
-			    notUpdatedArr.push('different directory list ' + JSON.stringify(localInfo) + ' '+ JSON.stringify(clientInfo));
+			    notUpdated(localInfo, clientInfo, 'different directory list');
 			    return resume();
 			}
 			else {
@@ -143,13 +150,13 @@ describe('filecontroller', function () {
 				var subMeta = _.head(subMetas);
 				return getLocalInfo(subMeta.path, function (info) {
 				    if (info.type === nothingType) {
-					notUpdatedArr.push('sub path ' + subMeta.path + ' does not exist ' + JSON.stringify(localInfo) + ' '+ JSON.stringify(clientInfo));
+					notUpdated(localInfo, clientInfo, 'missing subPath: ' + subMeta.path);
 					return resumeCheck();
 				    }
 				    else if (info.type === dirType) {
 					// if it's a directory, we just need to know that it exists
 					if (!subMeta.is_dir) {
-					    notUpdatedArr.push('sub path ' + subMeta.path + ' is not a dir ' + JSON.stringify(localInfo) + ' '+ JSON.stringify(clientInfo));
+					    notUpdated(localInfo, clientInfo, 'subPathis not supposed to be a dir: ' + subMeta.path);
 					    return resumeCheck();
 					}
 				    }
@@ -163,10 +170,12 @@ describe('filecontroller', function () {
 				});
 			    })(metadata.contents);
 			}
-			if ('' + localInfo.contents !== '' + clientInfo.contents) {
-			    notUpdatedArr.push('different file contents ' + JSON.stringify(localInfo) + ' '+ JSON.stringify(clientInfo));
-			}
 		    }
+		    else {
+			assert.equal(localInfo.type, nothingType, 'unrecognized info type: ' + JSON.stringify(localInfo));
+			notUpdated(localInfo, clientInfo, 'missing local file');
+			return resume();
+		    } 
 		});
 	    });
 
@@ -208,6 +217,7 @@ describe('filecontroller', function () {
 	    if (differences.length > 0) {
 		throw 'there were differences: ' + differences;
 	    }
+	    return cb();
 	});
     };
 
@@ -216,19 +226,24 @@ describe('filecontroller', function () {
 	    if (differences.length < 1) {
 		throw 'there were no differences.';
 	    }
+	    return cb();
+	});
+    };
+
+    var withTempFileController = function (cb) {
+	return temp.mkdir('filecontrollertest', function (err, dirPath) {
+	    assert(!err, 'error creating temporary directory for file controller');
+	    return cb(dt.fileController(dirPath), dirPath);    
 	});
     };
 
     it('should download a specific requested path', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
+	    return withTempFileController(function (fc, dirPath) {
 		var targetMeta = tt.randomPick(_.where(_.toArray(initialMetadata), {is_dir: false}));
 		assert(targetMeta, 'need a file to test with.');
-		return fc.downSync(client, targetMeta, function (updatedMetas) {
+		return fc.downSync(client, targetMeta, function (err, updatedMetas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
 		    return assertUpdated(client, dirPath, targetMeta, done);
 		});
 	    });
@@ -237,17 +252,15 @@ describe('filecontroller', function () {
 
     it('should return the delta for the single updated file', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
+	    return withTempFileController(function (fc, dirPath) {
 		var targetMeta = tt.randomPick(_.where(_.toArray(initialMetadata), {is_dir: false}));
 		assert(targetMeta, 'need a file to test with.');
-		return fc.downSync(client, {path: targetMeta.path}, function (deltas) {
+		return fc.downSync(client, {path: targetMeta.path}, function (err, deltas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
 		    assert.equal(deltas.length, 1, 'expected to receive a single delta when a single existing path is requested from a new filecontroller.');
 		    var updatedMeta = deltas[0][1];
-		    assert(updatedMeta, 'expected to get a change delta');
+		    assert(updatedMeta, 'expected to get a change delta, not a deletion.');
 		    assert(_.isEqual(updatedMeta, targetMeta), 'expected the get the initial metadata because there were no changes to the initial set');
 		    return done();
 		});
@@ -257,14 +270,12 @@ describe('filecontroller', function () {
 
     it('should download a specific requested directory', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
+	    return withTempFileController(function (fc, dirPath) {
 		var targetMeta = tt.randomPick(_.where(_.toArray(initialMetadata), {is_dir: true}));
 		assert(targetMeta, 'need a file to test with.');
-		return fc.downSync(client, targetMeta, function (deltas) {
+		return fc.downSync(client, targetMeta, function (err, deltas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
 		    assert.equal(deltas.length, 1, 'expected to receive a single delta when a single existing path is requested from a new filecontroller.');	    
 		    return assertUpdated(client, dirPath, deltas[0][0], done);
 		});
@@ -274,15 +285,13 @@ describe('filecontroller', function () {
 
     it('should not update outside a specific requested directory', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
+	    return withTempFileController(function (fc, dirPath) {
 		var targetMeta = tt.randomPick(_.where(_.toArray(initialMetadata), {is_dir: true}));
 		assert(targetMeta, 'need a file to test with.');
 		var targetPath = targetMeta.path;
-		return fc.downSync(client, targetMeta, function (deltas) {
+		return fc.downSync(client, targetMeta, function (err, deltas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
 		    var fileMetas = _.where(initialMetadata, {is_dir: false});
 		    var filesInDirectory = _.filter(fileMetas
 						    , function (meta) {
@@ -303,15 +312,17 @@ describe('filecontroller', function () {
     it('should not update a target path if target rev has not changed', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
 	    var initialCopy = metadatamod.fileset(initialMetadata);
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
-		return fc.downSync(client, initialMetadata, function (deltas) {
-		    return tt.randomModify(client, initialMetadata, 10, function (moddeltas) {
-			return fc.downSync(client, initialMetadata, function (deltas2) {
-			    return assertNotUpdated(client, dirPath, initialCopy, done);
+	    return withTempFileController(function (fc, dirPath) {
+		return fc.downSync(client, initialMetadata, function (err, deltas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
+		    return assertUpdated(client, dirPath, initialCopy, function () {
+			return tt.randomModify(client, initialMetadata, 10, function (moddeltas) {
+			    return fc.downSync(client, initialMetadata, function (err, deltas2) {
+				assert(!err, 'error from fileController.downSync ' + err);
+				assert(deltas2, 'expected to receive deltas from successful downSync.');
+				return assertNotUpdated(client, dirPath, initialCopy, done);
+			    });
 			});
 		    });
 		});
@@ -322,29 +333,31 @@ describe('filecontroller', function () {
     it('should not update specific target if just that target rev has not changed', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
 	    var initialCopy = metadatamod.fileset(initialMetadata);
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
-		return fc.downSync(client, initialMetadata, function (deltas) {
-		    return tt.randomModify(client, initialMetadata, 10, function (moddeltas) {
-			var changedFileMetas = _.filter(initialMetadata
-							, function (meta) { return !meta.is_dir && getChange(meta.path, moddeltas); });
-			if (changedFileMetas.length < 1) {
-			    console.log('WARNING: No updated file path.');
-			    return done();
-			}
-			var excludedMeta = tt.randomPick(changedFileMetas);
-			return dt.updateMetadata(client, initialMetadata, initialMetadata, function (latestMetadata) {
-			    var targetMetas = _.chain(latestMetadata)
-				.where({is_dir: false})
-				.filter(function (meta) { return meta.path !== excludedMeta.path })
-				.value();
-			    targetMetas.push(excludedMeta);
-			    return fc.downSync(client, targetMetas, function (deltas2) {
-				return assertNotUpdated(client, dirPath, excludedMeta, function () {
-				    return assertUpdated(client, dirPath, _.without(targetMetas, excludedMeta), done);
+	    return withTempFileController(function (fc, dirPath) {
+		return fc.downSync(client, initialMetadata, function (err, deltas) {
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    return assertUpdated(client, dirPath, initialCopy, function () {
+			return tt.randomModify(client, initialMetadata, 10, function (moddeltas) {
+			    var changedFileMetas = _.filter(initialMetadata
+							    , function (meta) { return !meta.is_dir && tt.getChange(meta.path, moddeltas); });
+			    if (changedFileMetas.length < 1) {
+				console.log('WARNING: No updated file path.');
+				return done();
+			    }
+			    var excludedMeta = tt.randomPick(changedFileMetas);
+			    return dt.updateMetadata(client, initialMetadata, initialMetadata, function (latestMetadata) {
+				var targetMetas = _.chain(latestMetadata)
+				    .where({is_dir: false})
+				    .filter(function (meta) { return meta.path !== excludedMeta.path })
+				    .value();
+				targetMetas.push(excludedMeta);
+				return fc.downSync(client, targetMetas, function (err, deltas2) {
+				    assert(!err, 'error from fileController.downSync ' + err);
+				    assert(deltas2, 'expected to receive deltas from successful downSync.');
+				    return assertNotUpdated(client, dirPath, excludedMeta, function () {
+					return assertUpdated(client, dirPath, _.without(targetMetas, excludedMeta), done);
+				    });
 				});
 			    });
 			});
@@ -356,13 +369,11 @@ describe('filecontroller', function () {
 
     it('should be able to update root path', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
+	    return withTempFileController(function (fc, dirPath) {
 		var targetMeta = '/';
-		return fc.downSync(client, targetMeta, function (deltas) {
+		return fc.downSync(client, targetMeta, function (err, deltas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
 		    return assertUpdated(client, dirPath, targetMeta, done);
 		});
 	    });
@@ -371,13 +382,11 @@ describe('filecontroller', function () {
 
     it('should not  update root path', function (done) {
 	return withRandomClient(function (client, initialMetadata) {
-	    return temp.mkdir('filecontrollertest', function (err, dirPath) {
-		if (err) {
-		    throw err;
-		}
-		var fc = dt.fileController(dirPath);
+	    return withTempFileController(function (fc, dirPath) {
 		var targetMeta = '/';
-		return fc.downSync(client, targetMeta, function (deltas) {
+		return fc.downSync(client, targetMeta, function (err, deltas) {
+		    assert(!err, 'error from fileController.downSync ' + err);
+		    assert(deltas, 'expected to receive deltas from successful downSync.');
 		    return assertUpdated(client, dirPath, targetMeta, done);
 		});
 	    });
