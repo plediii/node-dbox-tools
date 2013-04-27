@@ -3,6 +3,27 @@
 var _ = require('underscore');
 var metadatamod = require('./metadata')
 
+var toPathArray = exports.toPathArray = function toPathArray (paths) {
+    if (typeof paths === 'string') {
+	return [paths];
+    }
+    else if (paths.hasOwnProperty('path')) {
+	return [paths.path];
+    }
+    else {
+	return _.chain(paths)
+	    .map(toPathArray)
+	    .flatten()
+	    .map(function (elt) {
+		if (typeof elt !== 'string') {
+		    throw 'unable to convert to path array: ' + JSON.stringify(paths);
+		}
+		return elt;
+	    })
+	    .value();
+    }
+};
+
 var updateMetadata = exports.updateMetadata = function (cli, metadata, targets, cb) {
     metadata = metadatamod.fileset(metadata);
 
@@ -36,24 +57,19 @@ var updateMetadata = exports.updateMetadata = function (cli, metadata, targets, 
 	});
     };
 
-    if (targets.hasOwnProperty('path') || typeof targets === 'string') {
-	return updateTarget(targets, cb);
-    }
-    else {
-	return (function updateLoop (targets) {
-	    if (targets.length < 1) {
-		return cb(null, metadata);
+    return (function updateLoop (targets) {
+	if (targets.length < 1) {
+	    return cb(null, metadata);
+	}
+	return updateTarget(_.head(targets), function (err) {
+	    if (err) {
+		return cb(err);
 	    }
-	    return updateTarget(_.head(targets), function (err) {
-		if (err) {
-		    return cb(err);
-		}
-		else {
-		    updateLoop(_.rest(targets));
-		}
-	    });
-	})(_.toArray(targets));
-    }
+	    else {
+		updateLoop(_.rest(targets));
+	    }
+	});
+    })(toPathArray(targets));
 };
 
 exports.delta = function (cli, cursor, options) {
