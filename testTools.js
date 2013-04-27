@@ -15,7 +15,12 @@ var random_string = exports.random_string = function () {
 var check_fileset_invariants = metadatamod.fileset_invariants;
 
 exports.clientFactory = function (initialFiles) {
-    initialFiles = _.clone(initialFiles);
+    if (initialFiles) {
+	initialFiles = _.clone(initialFiles);
+    }
+    else {
+	initialFiles = randomFileTree();
+    }
     return function (theseFiles) {
 	if (!theseFiles) {
 	    theseFiles = [];
@@ -183,3 +188,29 @@ var randomModify = exports.randomModify = function (client, fileset, count, cb) 
 	});
     })(count);
 };
+
+exports.getChange = function getChange (path, deltas) {
+    var deltaPaths = _.map(deltas, function (delta) { return delta[0]; } );
+    var idx = _.lastIndexOf(deltaPaths, path);
+    if (idx < 0) {
+	return false;
+    }
+    var change = deltas[idx][1];
+    // we consider this to be the actual change if no parent path
+    // was deleted afterwards
+    if (change 
+	&& _.chain(deltaPaths.slice(idx))
+	.filter(function (parentPath) { return parentPath !== path &&  path.indexOf(parentPath)===0; })
+	.all(function (parentPath) { 
+	    var parentChange = getChange(parentPath, deltas.slice(idx));
+	    return parentChange !== null && parentChange.is_dir;
+	})
+	.value())
+    {
+	return change;
+    }
+    else {
+	return null;
+    }
+};
+

@@ -39,41 +39,10 @@ describe('updateMetadata', function () {
 	});
     };
 
-    var getChange = function (path, deltas) {
-	var deltaPaths = _.map(deltas, function (delta) { return delta[0]; } );
-	var idx = _.lastIndexOf(deltaPaths, path);
-	if (idx < 0) {
-	    return false;
-	}
-	var change = deltas[idx][1];
-	// we consider this to be the actual change if no parent path
-	// was deleted afterwards
-	if (change 
-	    && _.chain(deltaPaths.slice(idx))
-	    .filter(function (parentPath) { return parentPath !== path &&  path.indexOf(parentPath)===0; })
-	    .all(function (parentPath) { 
-		var parentChange = getChange(parentPath, deltas.slice(idx));
-		return parentChange !== null && parentChange.is_dir;
-	    })
-	    .value())
-	{
-	    return change;
-	}
-	else {
-	    return null;
-	}
-    };
+    var getChange = tt.getChange;
 
     var assertUpdated = function (newMetas, deltas, targets) {
-	_.each(targets, function (path) {
-	    if (typeof path !== 'string') {
-		if (!path.hasOwnProperty('path')) {
-		    throw 'unable to recognize type of target: ' + JSON.stringify(targets);
-		}
-		else {
-		    path = path.path;
-		}
-	    }
+	_.each(dt.toPathArray(targets), function (path) {
 	    var meta = getChange(path, deltas);
 	    if (meta === false) {
 		// no change to target reported in deltas
