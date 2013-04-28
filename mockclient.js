@@ -11,7 +11,7 @@ var random_string = function () {
 };
 
 
-var getMeta = function (file, files) {
+var getMeta = exports.getMeta = function (file, files) {
     var path = file.path;
     var meta = {};
     for (var attr in file) {
@@ -106,6 +106,7 @@ var partition = function (arr, num) {
     var cuts = _.map(_.range(num - 1), function () {
 	return Math.floor(len * Math.random());
     });
+    // these slices may overlap since the cuts aren't sorted
     var cutIntervals = _.zip([0].concat(cuts), cuts.concat([len]));
 
     return _.map(cutIntervals, function (interval) {
@@ -118,13 +119,29 @@ var deltaInstance = function (setThen) {
     var numDeltaSets = 1 + skewedRandomInt(3);
 
     return function (setNow, cursors) {
+	var filterMetadata = function (meta) {
+	    if (!meta) {
+		return meta;
+	    }
+	    else {
+		return _.pick(meta, 'path', 'rev'
+			      , 'hash', 'is_dir'
+			      , 'bytes', 'modified'
+			      , 'icon', 'root', 'revision');
+	    }
+	};
 	var entries;
 	if (setThen && !doReset) {
-	    entries = _.shuffle(metadata.delta(setNow, setThen));
+	    entries = _.chain(metadata.delta(setNow, setThen))
+		.map(function (delta) {
+		    return [delta[0], filterMetadata(delta[1])];
+		})
+		.shuffle()
+		.value();
 	}
 	else {
 	    entries = _.shuffle(_.map(_.toArray(setNow), function (meta) {
-		    return [meta.path, meta];
+		return [meta.path, filterMetadata(meta)];
 	    }));
 	}
 	var entrySets = partition(entries, numDeltaSets);
