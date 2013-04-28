@@ -1120,6 +1120,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 		    assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 		    assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 		    var firstHash = meta.hash;
+		    var firstRev = meta.rev;
 		    return client.put(fileName, contents, function (err, meta) {
 			assert.equal(err, 200, 'execpted success status when putting new file in existing dir.');
 			assert(meta, 'exepcted metadata for new file put');
@@ -1133,6 +1134,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			    assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 			    assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 			    assert.equal(meta.contents[0].path, fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
+			    assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 			    done();
 			});
 		    });
@@ -1157,6 +1159,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 		    assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 		    assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 		    var firstHash = meta.hash;
+		    var firstRev = meta.rev;
 		    return client.put(fileName, contents, function (err, meta) {
 			assert.equal(err, 200, 'execpted success status when putting new file in existing dir.');
 			assert(meta, 'exepcted metadata for new file put');
@@ -1170,6 +1173,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			    assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 			    assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 			    assert.equal(meta.contents[0].path, '/' + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
+			    assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 			    done();
 			});
 		    });
@@ -1194,6 +1198,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 		    assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 		    assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 		    var firstHash = meta.hash;
+		    var firstRev = meta.rev;
 		    return client.put(fileName, contents, function (err, meta) {
 			assert.equal(err, 200, 'execpted success status when putting new file in existing dir.');
 			assert(meta, 'exepcted metadata for new file put');
@@ -1209,6 +1214,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, dirName + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
+				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 				done();
 			    });
 			});			
@@ -1233,6 +1239,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 		    assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 		    assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 		    var firstHash = meta.hash;
+		    var firstRev = meta.rev;
 		    return client.put(fileName, contents, function (err, meta) {
 			assert.equal(err, 200, 'execpted success status when putting new file in existing dir.');
 			assert(meta, 'exepcted metadata for new file put');
@@ -1248,6 +1255,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, '/' + dirName + '/' + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
+				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 				done();
 			    });
 			});			
@@ -1273,6 +1281,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 			assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 			var firstHash = meta.hash;
+			var firstRev = meta.rev;
 			return client.mv(fileName, dirName + fileName, function (err) {
 			    assert.equal(err, 200, 'expected success copying file to new directory');
 			    return client.metadata(dirName, {
@@ -1285,6 +1294,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, dirName + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
+				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 				done();
 			    });
 			});
@@ -1310,6 +1320,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 			assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 			var firstHash = meta.hash;
+			var firstRev = meta.rev;
 			return client.mv(fileName, dirName + '/' + fileName, function (err) {
 			    assert.equal(err, 200, 'expected success copying file to new directory');
 			    return client.metadata(dirName, {
@@ -1322,6 +1333,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, '/' + dirName + '/' + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
+				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 				done();
 			    });
 			});
@@ -1350,6 +1362,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 			assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 			var firstHash = meta.hash;
+			var firstRev = meta.rev;
 			return client.rm(dirName + fileName, function (err) {
 			    assert.equal(err, 200, 'expected success removing file in directory');
 			    return client.metadata(dirName, {
@@ -1360,6 +1373,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert(meta.is_dir, 'expected is_dir for existing dir metadata query after put.');
 				assert(meta.contents, 'expected contents attribute for existing dir metadata query after put.');
 				assert.equal(meta.contents.length, 0, 'expected contents length 10for existing dir metadata query after only file rm.');
+				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 				done();
 			    });
 			});			
@@ -1387,6 +1401,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			assert(meta.hash, 'expected meta.hash for existing dir metadata query');
 			assert(meta.is_dir, 'expected meta.is_dir for existing dir metadata query');
 			var firstHash = meta.hash;
+			var firstRev = meta.rev;
 			return client.rm(dirName + '/' + fileName, function (err) {
 			    assert.equal(err, 200, 'expected success removing file in directory ' + dirName + '/' + fileName + ' status: ' + err);
 			    return client.metadata(dirName, {
@@ -1397,6 +1412,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert(meta.is_dir, 'expected is_dir for existing dir metadata query after put.');
 				assert(meta.contents, 'expected contents attribute for existing dir metadata query after put.');
 				assert.equal(meta.contents.length, 0, 'expected contents length 10for existing dir metadata query after only file rm.');
+				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
 				done();
 			    });
 			});			
