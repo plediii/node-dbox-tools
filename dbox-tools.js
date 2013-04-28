@@ -52,6 +52,9 @@ var getDelta = exports.getDelta = function (cli, metadata, targets, cb) {
 	    else if (err === 200) {
 		if (!currentMeta 
 		    || currentMeta.rev !== meta.rev) {
+		    if (meta.contents) {
+			delete meta.contents;
+		    }
 		    deltas.push([target, meta]);
 		}
 		return resume();
