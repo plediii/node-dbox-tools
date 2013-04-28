@@ -214,9 +214,13 @@ exports.mockclient = function (files) {
     };
 
 
+    addFile(mkdir('/'));
     for (var idx in files) {
 	var f = files[idx];
 	var path = normalizePath(f.path);
+	if (f.path === '/') {
+	    continue;
+	}
 	if (!path) {
 	    throw new Error('An initial file did not have a path property: ' + JSON.stringify(f))
 	}
