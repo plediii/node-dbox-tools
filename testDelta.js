@@ -28,6 +28,13 @@ var deltaList = function (client, cursor, cb) {
 	    return cb();
 	},
 	deltas: function (additionalDeltas, cb) {
+	    _.each(additionalDeltas, function (delta) {
+		if (delta[1]) {
+		    var change = delta[1];
+		    assert(!change.hasOwnProperty('data'), 'delta change metadata should not have a data property.');
+		    assert(!change.hasOwnProperty('contents'), 'delta change metadata should not have a data property.');
+		}
+	    });
 	    deltas = deltas.concat(additionalDeltas);
 	    return cb();
 	},
