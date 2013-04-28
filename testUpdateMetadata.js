@@ -27,17 +27,42 @@ var pickPathToModify= function (files) {
     }
 };
 
+var afterRandomModify = function (count, cb) {
+    var initialFiles = randomFileTree();
+
+    var cli = mockclient(_.clone(initialFiles));
+
+    return tt.randomModify(cli, initialFiles, count, function (delta) {
+	return cb(cli, initialFiles, delta);
+    });
+};
+
+describe('getDelta', function () {
+    
+    it('should changes should not include contents attributes', function (done) {
+
+	return afterRandomModify(50, function (cli, initialFiles, delta) {
+	    return dt.getDelta(cli, initialFiles, initialFiles, function (err, deltas) {
+		assert(!err, 'received error from getDelta');
+		assert(deltas.length > 0, 'no deltas.');
+		assert(_.some(deltas, function (delta) { 
+		    return delta[1] && delta[1].is_dir; 
+		}));
+		_.each(deltas, function (delta) {
+		    var change = delta[1];
+		    if (change) {
+			assert(!change.hasOwnProperty('contents'), 'a delta metadata has the contents attribute: ' + JSON.stringify(change));
+		    }
+		});
+		return done();
+	    });
+	});
+    });
+
+});
+
 describe('updateMetadata', function () {
 
-    var afterRandomModify = function (count, cb) {
-	var initialFiles = randomFileTree();
-
-	var cli = mockclient(_.clone(initialFiles));
-
-	return tt.randomModify(cli, initialFiles, count, function (delta) {
-	    return cb(cli, initialFiles, delta);
-	});
-    };
 
     var getChange = tt.getChange;
 
