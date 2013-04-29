@@ -97,8 +97,8 @@ describe('updateMetadata', function () {
 		return done();
 	    }
 	    var oneDelta = randomPick(delta);
-	    var path = oneDelta[0][0];
-	    var meta = oneDelta[0][1];
+	    var path = oneDelta[0];
+	    var meta = oneDelta[1];
 	    var target = path;
 
 	    return dt.updateMetadata(cli, initialFiles, target, function (err, newMetas) {
@@ -118,7 +118,7 @@ describe('updateMetadata', function () {
 	    }
 	    var oneDelta = randomPick(delta);
 	    var target = {
-		path: oneDelta[0][0]
+		path: oneDelta[0]
 	    };
 	    assert(target, 'falsy target ' + JSON.stringify(target));
 
@@ -137,8 +137,8 @@ describe('updateMetadata', function () {
 		return done();
 	    }
 	    var oneDelta = randomPick(delta);
-	    var path = oneDelta[0][0];
-	    var meta = oneDelta[0][1];
+	    var path = oneDelta[0];
+	    var meta = oneDelta[1];
 	    var target = path;
 
 	    return dt.updateMetadata(cli, {}, target, function (err, newMetas) {
