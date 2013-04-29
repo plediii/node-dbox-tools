@@ -51,13 +51,28 @@ var getDelta = exports.getDelta = function (cli, metadata, targets, cb) {
 	    }
 	    else if (err === 200) {
 		if (!currentMeta 
-		    || currentMeta.rev !== meta.rev) {
-		    if (meta.contents) {
-			delete meta.contents;
+		    || currentMeta.rev !== meta.rev
+		    || currentMeta.hash !== meta.hash) {
+		    if (meta.is_dir 
+			&& (!currentMeta 
+			    || currentMeta.hash !== meta.hash)) {
+
+			return getDelta(cli, metadata, meta.contents, function (err, subDeltas) {
+			    if (err) { return cb(err); }
+			    delete meta.contents;
+			    deltas.push([target, meta]);
+			    deltas = deltas.concat(subDeltas);
+			    return resume();
+			});
 		    }
-		    deltas.push([target, meta]);
+		    else {
+			deltas.push([target, meta]);
+			return resume();
+		    }
 		}
-		return resume();
+		else {
+		    return resume();
+		}
 	    }
 	    else if (err === 304) {
 		return resume();
