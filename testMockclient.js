@@ -1134,7 +1134,8 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			    assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 			    assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 			    assert.equal(meta.contents[0].path, fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
-			    assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+			    console.log(firstRev, meta.rev);
+			    assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 			    done();
 			});
 		    });
@@ -1173,7 +1174,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 			    assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 			    assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 			    assert.equal(meta.contents[0].path, '/' + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
-			    assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+			    assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 			    done();
 			});
 		    });
@@ -1214,7 +1215,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, dirName + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
-				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+				assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 				done();
 			    });
 			});			
@@ -1255,7 +1256,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, '/' + dirName + '/' + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
-				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+				assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 				done();
 			    });
 			});			
@@ -1294,7 +1295,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, dirName + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
-				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+				assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 				done();
 			    });
 			});
@@ -1333,7 +1334,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert.equal(meta.contents.length, 1, 'expected contents length 1 for existing dir metadata query after single put.');
 				assert(meta.contents[0].path, 1, 'expected meta.path in position 0 of dir metadata query after single put.');
 				assert.equal(meta.contents[0].path, '/' + dirName + '/' + fileName, 'expected meta.path to be the fileName in position 0 of dir metadata query after single put.');
-				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+				assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 				done();
 			    });
 			});
@@ -1373,7 +1374,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert(meta.is_dir, 'expected is_dir for existing dir metadata query after put.');
 				assert(meta.contents, 'expected contents attribute for existing dir metadata query after put.');
 				assert.equal(meta.contents.length, 0, 'expected contents length 10for existing dir metadata query after only file rm.');
-				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+				assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 				done();
 			    });
 			});			
@@ -1412,7 +1413,7 @@ mockFunctionTests('metadata', minimalFileSet(), function (freshClient) {
 				assert(meta.is_dir, 'expected is_dir for existing dir metadata query after put.');
 				assert(meta.contents, 'expected contents attribute for existing dir metadata query after put.');
 				assert.equal(meta.contents.length, 0, 'expected contents length 10for existing dir metadata query after only file rm.');
-				assert.notEqual(firstRev, meta.rev, 'expected rev to change with hash');
+				assert.equal(firstRev, meta.rev, 'expected rev to not change after only file list change');
 				done();
 			    });
 			});			
