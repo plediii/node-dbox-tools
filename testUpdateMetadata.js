@@ -59,6 +59,46 @@ describe('getDelta', function () {
 	});
     });
 
+    it('should get immediate subpath changes when a directory is modified.', function (done) {
+	var dirPath = '/dir';
+	var file1Path = pathmod.join(dirPath, 'file');
+	var cli = mockclient([{path: dirPath, is_dir: true}, {path: file1Path, is_dir:false}]);
+	
+	var initialMetadata = metadatamod.fileset();
+	return dt.delta(cli, null, {
+	    reset: function (done) { 
+		initialMetadata = metadatamod.fileset();
+		return done();
+	    }
+	    , deltas: function (deltas, done) {
+		metadatamod.applyDelta(deltas, initialMetadata);
+		return done();
+	    }
+	    , done: function (err) {
+		assert(!err, 'unexpected error from dt.delta');
+		var initialDirMeta = initialMetadata[dirPath];
+		var file2Path = pathmod.join(dirPath, 'file2');
+		return cli.put(file2Path, tt.random_string(), function (err) {
+		    assert.equal(err, 200, 'received error putting ' + file2Path);
+		    return cli.metadata(dirPath, function (err, changedDirMeta) {
+			assert.equal(err, 200, 'unexpected dbox error getting newest dir metadata');
+			assert.notEqual(changedDirMeta.hash, initialDirMeta.hash, 'expected putting a file below a directory would change the directory rev');
+			return dt.getDelta(cli, initialMetadata, initialDirMeta, function (err, deltas) {
+			    assert(!err, 'did not expect error from getDelta');
+			    assert(_.some(deltas, function (delta) {
+				return delta[1] && delta[1].path === file2Path;
+			    }), 'expected to get delta change for added file.');
+			    assert(!_.some(deltas, function (delta) {
+				return delta[1] && delta[1].path === file1Path;
+			    }), 'expected to not get delta change for unchanged file in directory.');
+			    return done();
+			});
+		    });
+		});
+	    }
+	});
+    });
+
 });
 
 describe('updateMetadata', function () {
