@@ -11,29 +11,7 @@ var random_string = function () {
 };
 
 
-var getMeta = exports.getMeta = function (file, files) {
-    var path = file.path;
-    var meta = {};
-    for (var attr in file) {
-	if (file.hasOwnProperty(attr)) {
-	    if ((attr !== 'hash') && (attr !== 'data')) {
-		meta[attr] = file[attr];
-	    }
-	}
-    }
-    if (files) {
-	if (file.is_dir) {
-	    meta.contents = [];
-	    for (var subpath in files) {
-		if ((subpath !== path) && (pathmod.dirname(subpath) === path)) {
-		    meta.contents.push(getMeta(files[subpath]));
-		}
-	    }
-	    meta.hash = file.hash;
-	}
-    }
-    return meta;
-};
+var getMeta = exports.getMeta = metdatamod.getMeta;
 
 var mkdir = function (path) {
     if (path[0] !== '/') {
